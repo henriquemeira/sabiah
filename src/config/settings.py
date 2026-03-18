@@ -33,6 +33,9 @@ class Settings(BaseSettings):
     # Freshdesk (Futuro)
     freshdesk_api_key: str = Field(default="", alias="FRESHDESK_API_KEY")
     freshdesk_subdomain: str = Field(default="", alias="FRESHDESK_SUBDOMAIN")
+    
+    # Telegram Grupo
+    telegram_grupo_id: str = Field(default="", alias="TELEGRAM_GRUPO_ID")
 
     # Caminhos
     @property

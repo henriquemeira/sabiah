@@ -157,12 +157,12 @@ Embora o foco inicial seja o Telegram, a arquitetura do Sabiah é modular e prep
 - [ ] Lógica de contexto combinado nas respostas da IA
 
 ### Fase 4 — Escalonamento
-- [ ] Detecção de necessidade de escalonamento (baixa confiança, insatisfação)
-- [ ] Menu de opções de escalonamento (botões no Telegram)
-- [ ] Notificação da equipe de suporte (grupo interno no Telegram)
-- [ ] Solicitação de callback (coleta de telefone)
-- [ ] Integração com Helpdesk (interface abstrata): criação de tickets (implementação inicial com Freshdesk)
-- [ ] Integração com Helpdesk (interface abstrata): consulta de status de tickets (implementação inicial com Freshdesk)
+- [x] Detecção de necessidade de escalonamento (baixa confiança, insatisfação)
+- [x] Menu de opções de escalonamento (botões no Telegram)
+- [x] Notificação da equipe de suporte (grupo interno no Telegram)
+- [x] Solicitação de callback (coleta de telefone)
+- [x] Integração com Helpdesk (interface abstrata): criação de tickets (implementação inicial com Freshdesk)
+- [x] Integração com Helpdesk (interface abstrata): consulta de status de tickets (implementação inicial com Freshdesk)
 
 ### Fase 5 — Automações e Métricas
 - [ ] Pesquisa de satisfação pós-atendimento (botões no Telegram)
