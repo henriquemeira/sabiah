@@ -22,8 +22,8 @@ O nome **Sabiah** é inspirado no sabiá, pássaro brasileiro símbolo de inteli
                     └──────────────┘       └───────────────┘
                            │
                     ┌──────▼───────┐
-                    │  Freshdesk   │
-                    │  (Tickets)   │
+                    │  Helpdesk    │
+                    │ (Multi-canal)│
                     └──────────────┘
 ```
 
@@ -40,7 +40,7 @@ O nome **Sabiah** é inspirado no sabiá, pássaro brasileiro símbolo de inteli
 | **Banco de dados** | SQLite | Simples, sem servidor, ideal para validação. Migração futura para PostgreSQL |
 | **Banco vetorial** | ChromaDB | Busca semântica na base de conhecimento, persistência automática, metadados integrados |
 | **Base de conhecimento** | Arquivos Markdown/JSON | Fácil edição e atualização da documentação do software |
-| **Helpdesk** | Freshdesk API | Criação e consulta de tickets automatizada |
+| **Canal de helpdesk** | Multi-canal de suporte | Interface abstrata para múltiplos canais (Freshdesk, JIRA, Zoho, E-mail, etc.) |
 
 ---
 
@@ -86,7 +86,7 @@ Cliente inicia conversa no Telegram
                 ▼
         Opções de escalonamento:
         ├── 🔄 Reformular pergunta
-        ├── 🎫 Abrir ticket no Freshdesk (automático)
+        ├── 🎫 Abrir ticket no Helpdesk (automático, via canal configurado)
         ├── 👤 Atendimento humano (notifica equipe)
         └── 📞 Solicitar callback (coleta telefone)
 ```
@@ -101,13 +101,13 @@ Cliente inicia conversa no Telegram
 - Identificação e vinculação automática do cliente pelo Telegram
 - Respostas contextualizadas com base no domínio do cliente (versão, plano, módulos)
 - Histórico de conversas preservado para continuidade do atendimento
-- Consulta de status de tickets do Freshdesk diretamente pelo bot
+- Consulta de status de tickets do Helpdesk (via canal configurado) diretamente pelo bot
 
 ### Escalonamento
 
+- Abertura automática de ticket no Helpdesk (via canal configurado) com histórico da conversa anexado
 - Escalonamento para atendimento humano com notificação da equipe
 - Solicitação de callback telefônico
-- Abertura automática de ticket no Freshdesk via API, com histórico da conversa anexado
 
 ### Automações Internas (via Telegram — grupo da equipe)
 
@@ -125,6 +125,9 @@ Embora o foco inicial seja o Telegram, a arquitetura do Sabiah é modular e prep
 |---|---|
 | **WhatsApp** | Adicionar canal via API (Twilio, Z-API ou Evolution API) |
 | **Chat Web** | Página de chat própria no domínio da empresa |
+| **JIRA** | Adicionar canal via API |
+| **Zoho Desk** | Adicionar canal via API |
+| **E-mail** | Adicionar canal de abertura de tickets via e-mail (sem API) |
 | **PostgreSQL** | Migração do SQLite quando o volume crescer |
 | **Dashboard Web** | Painel com gráficos e métricas em tempo real |
 | **Múltiplos provedores de IA** | Trocar ou combinar Gemini, OpenAI, Groq, Ollama |
@@ -158,8 +161,8 @@ Embora o foco inicial seja o Telegram, a arquitetura do Sabiah é modular e prep
 - [ ] Menu de opções de escalonamento (botões no Telegram)
 - [ ] Notificação da equipe de suporte (grupo interno no Telegram)
 - [ ] Solicitação de callback (coleta de telefone)
-- [ ] Integração com Freshdesk API: criação de tickets
-- [ ] Integração com Freshdesk API: consulta de status de tickets
+- [ ] Integração com Helpdesk (interface abstrata): criação de tickets (implementação inicial com Freshdesk)
+- [ ] Integração com Helpdesk (interface abstrata): consulta de status de tickets (implementação inicial com Freshdesk)
 
 ### Fase 5 — Automações e Métricas
 - [ ] Pesquisa de satisfação pós-atendimento (botões no Telegram)
