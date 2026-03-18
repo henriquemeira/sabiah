@@ -12,8 +12,8 @@ O nome **Sabiah** é inspirado no sabiá, pássaro brasileiro símbolo de inteli
 
 ```
 ┌─────────────┐     ┌──────────────┐     ┌─────────────────┐
-│   Cliente    │────▶│  Telegram Bot │────▶│   Motor de IA   │
-│  (Telegram)  │◀────│   (Python)   │◀────│  (Multi-provedor)│
+│   Cliente   │────▶│ Telegram Bot │────▶│   Motor de IA   │
+│  (Telegram) │◀────│   (Python)   │◀────│ (Multi-provedor)│
 └─────────────┘     └──────┬───────┘     └────────┬────────┘
                            │                      │
                     ┌──────▼───────┐       ┌──────▼────────┐
@@ -86,9 +86,9 @@ Cliente inicia conversa no Telegram
                 ▼
         Opções de escalonamento:
         ├── 🔄 Reformular pergunta
+        ├── 🎫 Abrir ticket no Freshdesk (automático)
         ├── 👤 Atendimento humano (notifica equipe)
-        ├── 📞 Solicitar callback (coleta telefone)
-        └── 🎫 Abrir ticket no Freshdesk (automático)
+        └── 📞 Solicitar callback (coleta telefone)
 ```
 
 ---
