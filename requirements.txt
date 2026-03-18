@@ -1,0 +1,20 @@
+# Telegram Bot
+python-telegram-bot>=20.0
+
+# IA
+google-generativeai>=0.3.0
+
+# Banco de dados
+sqlalchemy>=2.0.0
+alembic>=1.12.0
+
+# Banco vetorial
+chromadb>=0.4.0
+
+# Configuração
+python-dotenv>=1.0.0
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
+
+# Utilities
+python-dateutil>=2.8.0
