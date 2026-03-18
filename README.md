@@ -165,10 +165,10 @@ Embora o foco inicial seja o Telegram, a arquitetura do Sabiah é modular e prep
 - [x] Integração com Helpdesk (interface abstrata): consulta de status de tickets (implementação inicial com Freshdesk)
 
 ### Fase 5 — Automações e Métricas
-- [ ] Pesquisa de satisfação pós-atendimento (botões no Telegram)
-- [ ] Armazenamento de métricas de atendimento
-- [ ] Relatório diário automático no grupo da equipe
-- [ ] Relatório semanal com métricas consolidadas
+- [x] Pesquisa de satisfação pós-atendimento (botões no Telegram)
+- [x] Armazenamento de métricas de atendimento
+- [x] Relatório diário automático no grupo da equipe
+- [x] Relatório semanal com métricas consolidadas
 
 ### Fase 6 — Refinamento e Testes
 - [ ] Testes com cenários reais de suporte
