@@ -1,0 +1,154 @@
+"""Serviço de construção de prompts com contexto."""
+
+from dataclasses import dataclass
+from typing import Optional
+
+
+@dataclass
+class ContextoCliente:
+    """Contexto do cliente para o prompt."""
+    nome: str
+    versao_software: Optional[str] = None
+    plano: Optional[str] = None
+    modulos: Optional[str] = None
+
+
+@dataclass
+class ContextoConversa:
+    """Contexto da conversa para o prompt."""
+    historico: list[dict]
+
+
+class PromptBuilder:
+    """Construtor de prompts com contexto integrado."""
+    
+    # Prompt de sistema base
+    SISTEMA_BASE = """Você é o Sabiah, um assistente de suporte ao cliente inteligente e prestativo.
+Seu objetivo é ajudar os clientes a resolver suas dúvidas e problemas de forma eficiente e amigável.
+
+Diretrizes:
+- Responda de forma clara, concisa e acessível
+- Seja profissional mas amigável
+- Quando não souber a resposta, seja honesto e ofereça alternativas
+- Use formatação simples (Markdown básico) quando apropriado
+- Sempre tente oferecer soluções práticas
+    
+Você tem acesso a uma base de conhecimento com documentação e FAQs do software que você suporta.
+Use essa base para responder perguntas técnicas."""
+
+    def __init__(
+        self,
+        base_conhecimento: str = "",
+        contexto_cliente: Optional[ContextoCliente] = None,
+        contexto_conversa: Optional[ContextoConversa] = None,
+    ):
+        """
+        Inicializa o builder de prompts.
+        
+        Args:
+            base_conhecimento: Texto da base de conhecimento recuperada
+            contexto_cliente: Contexto do cliente
+            contexto_conversa: Histórico da conversa
+        """
+        self.base_conhecimento = base_conhecimento
+        self.contexto_cliente = contexto_cliente
+        self.contexto_conversa = contexto_conversa
+    
+    def build(self) -> tuple[str, list[dict]]:
+        """
+        Constrói o prompt de sistema e histórico para a IA.
+        
+        Returns:
+            Tuple (prompt_sistema, historico)
+        """
+        # Construir prompt de sistema
+        sistema_parts = [self.SISTEMA_BASE]
+        
+        # Adicionar contexto do cliente
+        if self.contexto_cliente:
+            sistema_parts.append(self._build_contexto_cliente())
+        
+        # Adicionar base de conhecimento
+        if self.base_conhecimento:
+            sistema_parts.append(self._build_contexto_base_conhecimento())
+        
+        sistema = "\n\n".join(sistema_parts)
+        
+        # Construir histórico
+        historico = []
+        if self.contexto_conversa:
+            for msg in self.contexto_conversa.historico:
+                historico.append({
+                    "role": msg.get("role", "user"),
+                    "content": msg.get("content", ""),
+                })
+        
+        return sistema, historico
+    
+    def _build_contexto_cliente(self) -> str:
+        """Constrói o contexto específico do cliente."""
+        if not self.contexto_cliente:
+            return ""
+        
+        parts = ["### Contexto do Cliente"]
+        parts.append(f"Nome: {self.contexto_cliente.nome}")
+        
+        if self.contexto_cliente.versao_software:
+            parts.append(f"Versão do Software: {self.contexto_cliente.versao_software}")
+        
+        if self.contexto_cliente.plano:
+            parts.append(f"Plano: {self.contexto_cliente.plano}")
+        
+        if self.contexto_cliente.modulos:
+            parts.append(f"Módulos Contratados: {self.contexto_cliente.modulos}")
+        
+        return "\n".join(parts)
+    
+    def _build_contexto_base_conhecimento(self) -> str:
+        """Constrói o contexto da base de conhecimento."""
+        if not self.base_conhecimento:
+            return ""
+        
+        return f"""### Base de Conhecimento
+
+{self.base_conhecimento}
+
+Quando utilizar informações da base de conhecimento, cite a fonte quando apropriado."""
+
+    @staticmethod
+    def criar_resposta(
+        base_conhecimento: str,
+        cliente: Optional[ContextoCliente] = None,
+        historico: Optional[list[dict]] = None,
+    ) -> tuple[str, list[dict]]:
+        """
+        Método estático para criar prompts de forma simples.
+        
+        Args:
+            base_conhecimento: Texto da base de conhecimento
+            cliente: Contexto do cliente
+            historico: Histórico de mensagens
+            
+        Returns:
+            Tuple (prompt_sistema, historico)
+        """
+        contexto_cliente = None
+        if cliente:
+            contexto_cliente = ContextoCliente(
+                nome=cliente.get("nome", "Cliente"),
+                versao_software=cliente.get("versao_software"),
+                plano=cliente.get("plano"),
+                modulos=cliente.get("modulos"),
+            )
+        
+        contexto_conversa = None
+        if historico:
+            contexto_conversa = ContextoConversa(historico=historico)
+        
+        builder = PromptBuilder(
+            base_conhecimento=base_conhecimento,
+            contexto_cliente=contexto_cliente,
+            contexto_conversa=contexto_conversa,
+        )
+        
+        return builder.build()
