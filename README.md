@@ -35,12 +35,39 @@ O nome **Sabiah** é inspirado no sabiá, pássaro brasileiro símbolo de inteli
 |---|---|---|
 | **Linguagem** | Python | Ecossistema rico para IA, chatbots e integrações |
 | **Canal principal** | Telegram Bot API | Plataforma gratuita, com recursos nativos de bot, botões e menus |
-| **Provedor de IA inicial** | Google Gemini (free tier) | Generoso limite gratuito, boa qualidade de resposta |
+| **Provedor de IA** | Multi-provedor (Gemini/Groq) | Groq recomendado (gratuito, rápido). Gemini como alternativa |
 | **Arquitetura de IA** | Multi-provedor | Preparado para trocar ou adicionar provedores (OpenAI, Groq, Ollama, etc.) |
 | **Banco de dados** | SQLite | Simples, sem servidor, ideal para validação. Migração futura para PostgreSQL |
 | **Banco vetorial** | ChromaDB | Busca semântica na base de conhecimento, persistência automática, metadados integrados |
 | **Base de conhecimento** | Arquivos Markdown/JSON | Fácil edição e atualização da documentação do software |
 | **Canal de helpdesk** | Multi-canal de suporte | Interface abstrata para múltiplos canais (Freshdesk, JIRA, Zoho, E-mail, etc.) |
+
+---
+
+## Configuração
+
+### Variáveis de Ambiente
+
+Copie `.env.example` para `.env` e configure:
+
+```bash
+# Telegram
+TELEGRAM_BOT_TOKEN=seu_token_aqui
+
+# IA - Escolha uma opção:
+# Opção 1: Groq (recomendado - gratuito e rápido)
+GROQ_API_KEY=sua_chave_groq_aqui
+
+# Opção 2: Google Gemini
+GEMINI_API_KEY=sua_chave_gemini_aqui
+```
+
+### Obtendo API Keys
+
+| Provedor | Link | Plano Gratuito |
+|---|---|---|
+| **Groq** | https://console.groq.com/keys | ~60 req/min |
+| **Gemini** | https://aistudio.google.com/app/apikey | Limites variados |
 
 ---
 
@@ -159,6 +186,7 @@ Embora o foco inicial seja o Telegram, a arquitetura do Sabiah é modular e prep
 
 ### Fase 2 — Motor de IA
 - [x] Integração com Google Gemini API (free tier)
+- [x] **Novo**: Integração com Groq API (alternativa gratuita recomendada)
 - [x] Arquitetura multi-provedor (interface abstrata para trocar provedores)
 - [x] Configuração do ChromaDB para busca vetorial
 - [x] Indexação da base de conhecimento (Markdown/JSON → ChromaDB)
