@@ -27,7 +27,6 @@ class GeminiProvedor(ProvedorIA):
         
         # Configurar API key
         if settings.gemini_api_key:
-            genai.configure(api_key=settings.gemini_api_key)
             logger.info(f"✅ Gemini configurado com modelo: {modelo}")
         else:
             logger.warning("⚠️ GEMINI_API_KEY não configurada!")
@@ -43,7 +42,7 @@ class GeminiProvedor(ProvedorIA):
     def _get_client(self):
         """Retorna o cliente do Gemini (lazy loading)."""
         if self._client is None:
-            self._client = genai.GenerativeModel(self._modelo)
+            self._client = genai.Client(api_key=settings.gemini_api_key)
         return self._client
     
     def chat(
@@ -66,13 +65,24 @@ class GeminiProvedor(ProvedorIA):
         if not settings.gemini_api_key:
             raise ValueError("GEMINI_API_KEY não configurada!")
         
-        # Construir conteúdo da conversa
+        client = self._get_client()
+        
+        # Configurar geração
+        generation_config = {
+            "temperature": 0.7,
+            "max_output_tokens": 2048,
+        }
+        
+        # Preparar conteúdo com histórico
         contents = []
         
         # Adicionar histórico se houver
         if historico:
             for msg in historico:
-                role = "user" if msg.get("role") == "user" else "model"
+                role = msg.get("role", "user")
+                # O modelo usa "user" e "model" (não "assistant")
+                if role == "assistant":
+                    role = "model"
                 contents.append({
                     "role": role,
                     "parts": [{"text": msg.get("content", "")}]
@@ -84,35 +94,24 @@ class GeminiProvedor(ProvedorIA):
             "parts": [{"text": mensagem}]
         })
         
-        # Criar chat
-        client = self._get_client()
-        
-        # Configurar geração
-        generation_config = {
-            "temperature": 0.7,
-            "max_output_tokens": 2048,
-        }
-        
-        # Adicionar sistema se houver
-        if sistema:
-            # O Gemini usa safety_settings e system_instruction
-            response = client.generate_content(
-                contents,
-                system_instruction=sistema,
-                generation_config=generation_config,
-            )
-        else:
-            response = client.generate_content(
-                contents,
-                generation_config=generation_config,
-            )
+        # Fazer a requisição
+        response = client.models.generate_content(
+            model=self._modelo,
+            contents=contents,
+            system_instruction=sistema,
+            config=generation_config,
+        )
         
         # Extrair texto da resposta
         conteudo = ""
-        if hasattr(response, "text"):
+        if hasattr(response, "text") and response.text:
             conteudo = response.text
-        elif hasattr(response, "parts"):
-            conteudo = "".join([part.text for part in response.parts if hasattr(part, "text")])
+        elif hasattr(response, "candidates") and response.candidates:
+            candidate = response.candidates[0]
+            if hasattr(candidate, "content") and candidate.content:
+                for part in candidate.content.parts:
+                    if hasattr(part, "text") and part.text:
+                        conteudo += part.text
         
         return RespostaIA(
             conteudo=conteudo,
@@ -125,8 +124,9 @@ class GeminiProvedor(ProvedorIA):
             return False
         
         try:
-            # Testar conexão listando modelos
-            list(genai.list_models())
+            client = self._get_client()
+            # Tentar listar modelos para validar
+            list(client.models.list())
             return True
         except Exception as e:
             logger.error(f"❌ Erro ao validar Gemini: {e}")
