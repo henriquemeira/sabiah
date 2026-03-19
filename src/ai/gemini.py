@@ -73,6 +73,10 @@ class GeminiProvedor(ProvedorIA):
             "max_output_tokens": 2048,
         }
         
+        # Adicionar system_instruction ao config se fornecido
+        if sistema:
+            generation_config["system_instruction"] = sistema
+        
         # Preparar conteúdo com histórico
         contents = []
         
@@ -98,7 +102,6 @@ class GeminiProvedor(ProvedorIA):
         response = client.models.generate_content(
             model=self._modelo,
             contents=contents,
-            system_instruction=sistema,
             config=generation_config,
         )
         
