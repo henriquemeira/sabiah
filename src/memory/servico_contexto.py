@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from src.models import Cliente
 from src.ai.prompts import PromptBuilder
+from src.ai.base import RespostaIA
 from src.memory.memoria_geral import MemoriaGeral, get_memoria_geral
 from src.memory.memoria_cliente import MemoriaCliente
 from src.memory.memoria_dominio import MemoriaDominio
@@ -141,7 +142,7 @@ class ServicoContexto:
         mensagem: str,
         provedor_ia,
         atendente_telegram_id: Optional[int] = None,
-    ) -> tuple[str, ContextoAtendimento]:
+    ) -> tuple[str, ContextoAtendimento, RespostaIA]:
         """
         Processa uma mensagem do cliente e retorna a resposta da IA.
         
@@ -152,7 +153,7 @@ class ServicoContexto:
             atendente_telegram_id: Telegram ID do atendente (para isolamento de histórico)
             
         Returns:
-            Tuple (resposta_da_ia, contexto)
+            Tuple (resposta_da_ia, contexto, resposta_completa_ia)
         """
         # Preparar contexto
         contexto = self.preparar_atendimento(
@@ -176,4 +177,4 @@ class ServicoContexto:
             atendente_telegram_id=atendente_telegram_id,
         )
         
-        return resposta.conteudo, contexto
+        return resposta.conteudo, contexto, resposta
