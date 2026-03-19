@@ -19,7 +19,7 @@ from src.models.database import get_db
 from src.models import Cliente
 from src.services import IdentificacaoService, ClienteNaoEncontrado
 from src.services.escalonamento import ServicoEscalonamento
-from src.services.deteccao_escalonamento import TipoEscalonamento
+from src.services.deteccao_escalonamento import DetectorEscalonamento, TipoEscalonamento
 from src.ai.factory import get_provedor
 from src.memory.servico_contexto import ServicoContexto
 from src.bot.handlers.escalonamento import (
@@ -166,7 +166,7 @@ async def tratar_mensagem(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         servico_contexto = ServicoContexto(db)
         
         # Processar mensagem com IA (passando telegram_id do atendente para isolamento)
-        resposta, contexto = servico_contexto.processar_mensagem(
+        resposta, contexto, resposta_ia = servico_contexto.processar_mensagem(
             cliente=cliente,
             mensagem=mensagem,
             provedor_ia=provedor,
@@ -178,6 +178,24 @@ async def tratar_mensagem(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         
         # Atualizar histórico no contexto
         context.user_data["historico_conversa"] = contexto.historico
+        
+        # Incrementar número de tentativas
+        tentativas = context.user_data.get("tentativas", 0) + 1
+        context.user_data["tentativas"] = tentativas
+        
+        # Verificar necessidade de escalonamento
+        detector = DetectorEscalonamento()
+        resultado_deteccao = detector.analisar(
+            resposta_ia=resposta_ia,
+            mensagem_cliente=mensagem,
+            numero_tentativas=tentativas,
+        )
+        
+        if resultado_deteccao.necesita_escalonar:
+            logger.info(f"🔔 Escalonamento necessário: {resultado_deteccao.motivo}")
+            await mostrar_opcoes_escalonamento(
+                update, context, mensagem=resultado_deteccao.mensagem
+            )
         
         db.close()
         return AGUARDANDO_MENSAGEM
