@@ -82,11 +82,12 @@ async def tratar_identificacao(update: Update, context: ContextTypes.DEFAULT_TYP
             telegram_vinculado = any(v.telegram_id == telegram_id for v in vinculos)
             
             if not telegram_vinculado:
-                # Perguntar nome do atendente (opcional)
+                # Perguntar nome da pessoa que está solicitando suporte (opcional)
                 await update.message.reply_text(
                     "📎 Deseja vincular seu Telegram a este cliente? "
                     "(Isso permite atendimento para múltiplas empresas)\n\n"
-                    "Digite o nome do atendente (ou /pular para continuar sem nome):"
+                    "Digite seu nome para identificação no atendimento "
+                    "(ou /pular para continuar sem nome):"
                 )
                 context.user_data["pendente_vinculo_telegram"] = {
                     "cliente": cliente,
@@ -362,7 +363,7 @@ async def cancelar(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
 
 async def tratar_nome_atendente(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """Trata o nome do atendente para vincular Telegram."""
+    """Trata o nome da pessoa que está solicitando suporte para vincular ao Telegram."""
     texto = update.message.text.strip()
     telegram_id = update.effective_user.id
     
@@ -377,16 +378,16 @@ async def tratar_nome_atendente(update: Update, context: ContextTypes.DEFAULT_TY
     cliente = pendente["cliente"]
     
     # Verificar se é comando /pular
-    nome_atendente = None
+    nome_solicitante = None
     if texto.lower() != "/pular":
-        nome_atendente = texto
+        nome_solicitante = texto
     
     db = next(get_db())
     identificador = IdentificacaoService(db)
     
     try:
-        # Vincular Telegram ID com nome do atendente
-        identificador.vincular_telegram(cliente, telegram_id, nome_atendente)
+        # Vincular Telegram ID com nome do solicitante
+        identificador.vincular_telegram(cliente, telegram_id, nome_solicitante)
         
         # Salvar cliente no contexto
         context.user_data["cliente"] = cliente
@@ -395,8 +396,8 @@ async def tratar_nome_atendente(update: Update, context: ContextTypes.DEFAULT_TY
         context.user_data.pop("pendente_vinculo_telegram", None)
         
         msg = f"✅ Olá, {cliente.nome}! Seu Telegram foi vinculado."
-        if nome_atendente:
-            msg += f"\n📋 Atendente: {nome_atendente}"
+        if nome_solicitante:
+            msg += f"\n📋 Identificação: {nome_solicitante}"
         msg += "\n\nComo posso ajudar hoje?"
         
         await update.message.reply_text(msg)
