@@ -150,24 +150,26 @@ Embora o foco inicial seja o Telegram, a arquitetura do Sabiah é modular e prep
 ## Checklist de Implementação
 
 ### Fase 1 — Estrutura Base
-- [ ] Estrutura do projeto Python (pastas, dependências, configuração)
-- [ ] Configuração do bot no Telegram (BotFather, token)
-- [ ] Conexão básica: bot recebe e responde mensagens no Telegram
-- [ ] Configuração do SQLite (schema de tabelas)
-- [ ] Módulo de identificação e vinculação do cliente
+- [x] Estrutura do projeto Python (pastas, dependências, configuração)
+- [x] Configuração do bot no Telegram (BotFather, token)
+- [x] Conexão básica: bot recebe e responde mensagens no Telegram
+- [x] Configuração do SQLite (schema de tabelas)
+- [x] Módulo de identificação e vinculação do cliente
+- [x] **Novo**: Fluxo de auto-cadastro para novos clientes
 
 ### Fase 2 — Motor de IA
-- [ ] Integração com Google Gemini API (free tier)
-- [ ] Arquitetura multi-provedor (interface abstrata para trocar provedores)
-- [ ] Configuração do ChromaDB para busca vetorial
-- [ ] Indexação da base de conhecimento (Markdown/JSON → ChromaDB)
-- [ ] Lógica de construção de prompt com contexto (memória geral + cliente + domínio)
+- [x] Integração com Google Gemini API (free tier)
+- [x] Arquitetura multi-provedor (interface abstrata para trocar provedores)
+- [x] Configuração do ChromaDB para busca vetorial
+- [x] Indexação da base de conhecimento (Markdown/JSON → ChromaDB)
+- [x] Lógica de construção de prompt com contexto (memória geral + cliente + domínio)
+- [x] **Novo**: Integração do handler de mensagens com o serviço de IA
 
 ### Fase 3 — Camadas de Memória
-- [ ] Memória Geral: carregamento e indexação de arquivos de documentação
-- [ ] Memória do Cliente: registro de histórico de conversas no SQLite
-- [ ] Memória do Domínio: cadastro e consulta de dados do ambiente do cliente
-- [ ] Lógica de contexto combinado nas respostas da IA
+- [x] Memória Geral: carregamento e indexação de arquivos de documentação
+- [x] Memória do Cliente: registro de histórico de conversas no SQLite
+- [x] Memória do Domínio: cadastro e consulta de dados do ambiente do cliente
+- [x] Lógica de contexto combinado nas respostas da IA
 
 ### Fase 4 — Escalonamento
 - [x] Detecção de necessidade de escalonamento (baixa confiança, insatisfação)
