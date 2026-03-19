@@ -37,6 +37,7 @@ AGUARDANDO_CADASTRO_NOME = 2  # Novo estado: coletar nome
 AGUARDANDO_CADASTRO_EMAIL = 3  # Novo estado: coletar e-mail
 AGUARDANDO_CADASTRO_TELEFONE = 4  # Novo estado: coletar telefone
 AGUARDANDO_CONFIRMAR_CADASTRO = 5  # Novo estado: confirmar dados
+AGUARDANDO_NOME_ATENDENTE = 6  # Estado para vincular telegram com nome de atendente
 AGUARDANDO_MENSAGEM = 10
 
 
@@ -76,8 +77,23 @@ async def tratar_identificacao(update: Update, context: ContextTypes.DEFAULT_TYP
         
         if cliente:
             # Cliente encontrado - vincular Telegram se necessário
-            if not cliente.telegram_id:
-                identificador.vincular_telegram(cliente, telegram_id)
+            # Agora permite múltiplos vínculos por cliente
+            vinculos = identificador.listar_telegram_vinculados(cliente.id)
+            telegram_vinculado = any(v.telegram_id == telegram_id for v in vinculos)
+            
+            if not telegram_vinculado:
+                # Perguntar nome do atendente (opcional)
+                await update.message.reply_text(
+                    "📎 Deseja vincular seu Telegram a este cliente? "
+                    "(Isso permite atendimento para múltiplas empresas)\n\n"
+                    "Digite o nome do atendente (ou /pular para continuar sem nome):"
+                )
+                context.user_data["pendente_vinculo_telegram"] = {
+                    "cliente": cliente,
+                    "telegram_id": telegram_id
+                }
+                db.close()
+                return AGUARDANDO_CADASTRO_TELEFONE + 1  # Novo estado para nome do atendente
             
             # Salvar cliente no contexto
             context.user_data["cliente"] = cliente
@@ -119,6 +135,7 @@ async def tratar_mensagem(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     """Processa mensagens do cliente identificado usando IA."""
     mensagem = update.message.text
     cliente: Cliente = context.user_data.get("cliente")
+    telegram_id = update.effective_user.id
     
     if not cliente:
         await update.message.reply_text(
@@ -147,11 +164,12 @@ async def tratar_mensagem(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         # Criar serviço de contexto
         servico_contexto = ServicoContexto(db)
         
-        # Processar mensagem com IA
+        # Processar mensagem com IA (passando telegram_id do atendente para isolamento)
         resposta, contexto = servico_contexto.processar_mensagem(
             cliente=cliente,
             mensagem=mensagem,
             provedor_ia=provedor,
+            atendente_telegram_id=telegram_id,
         )
         
         # Enviar resposta (sem Markdown - Telegram interpreta * como Markdown por padrão)
@@ -343,6 +361,102 @@ async def cancelar(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     return ConversationHandler.END
 
 
+async def tratar_nome_atendente(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Trata o nome do atendente para vincular Telegram."""
+    texto = update.message.text.strip()
+    telegram_id = update.effective_user.id
+    
+    # Obter dados pendentes
+    pendente = context.user_data.get("pendente_vinculo_telegram")
+    if not pendente:
+        await update.message.reply_text(
+            "❌ Sessão expirada. Envie /start para continuar."
+        )
+        return ConversationHandler.END
+    
+    cliente = pendente["cliente"]
+    
+    # Verificar se é comando /pular
+    nome_atendente = None
+    if texto.lower() != "/pular":
+        nome_atendente = texto
+    
+    db = next(get_db())
+    identificador = IdentificacaoService(db)
+    
+    try:
+        # Vincular Telegram ID com nome do atendente
+        identificador.vincular_telegram(cliente, telegram_id, nome_atendente)
+        
+        # Salvar cliente no contexto
+        context.user_data["cliente"] = cliente
+        context.user_data["historico_conversa"] = ""
+        context.user_data["tentativas"] = 0
+        context.user_data.pop("pendente_vinculo_telegram", None)
+        
+        msg = f"✅ Olá, {cliente.nome}! Seu Telegram foi vinculado."
+        if nome_atendente:
+            msg += f"\n📋 Atendente: {nome_atendente}"
+        msg += "\n\nComo posso ajudar hoje?"
+        
+        await update.message.reply_text(msg)
+        
+        db.close()
+        return AGUARDANDO_MENSAGEM
+        
+    except Exception as e:
+        logger.error(f"Erro ao vincular telegram: {e}")
+        await update.message.reply_text(
+            "⚠️ Erro ao vincular Telegram. Tente novamente com /start"
+        )
+        db.close()
+        return ConversationHandler.END
+
+
+async def pular_nome_atendente(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Pula a etapa de nome do atendente."""
+    telegram_id = update.effective_user.id
+    
+    # Obter dados pendentes
+    pendente = context.user_data.get("pendente_vinculo_telegram")
+    if not pendente:
+        await update.message.reply_text(
+            "❌ Sessão expirada. Envie /start para continuar."
+        )
+        return ConversationHandler.END
+    
+    cliente = pendente["cliente"]
+    
+    db = next(get_db())
+    identificador = IdentificacaoService(db)
+    
+    try:
+        # Vincular Telegram ID sem nome do atendente
+        identificador.vincular_telegram(cliente, telegram_id, None)
+        
+        # Salvar cliente no contexto
+        context.user_data["cliente"] = cliente
+        context.user_data["historico_conversa"] = ""
+        context.user_data["tentativas"] = 0
+        context.user_data.pop("pendente_vinculo_telegram", None)
+        
+        await update.message.reply_text(
+            f"✅ Olá, {cliente.nome}! Seu Telegram foi vinculado.\n\n"
+            "Como posso ajudar hoje?"
+        )
+        
+        db.close()
+        return AGUARDANDO_MENSAGEM
+        
+    except Exception as e:
+        logger.error(f"Erro ao vincular telegram: {e}")
+        await update.message.reply_text(
+            "⚠️ Erro ao vincular Telegram. Tente novamente com /start"
+        )
+        db.close()
+        return ConversationHandler.END
+
+
 def get_conversation_handler() -> ConversationHandler:
     """Retorna o ConversationHandler principal."""
     return ConversationHandler(
@@ -363,6 +477,9 @@ def get_conversation_handler() -> ConversationHandler:
             AGUARDANDO_CONFIRMAR_CADASTRO: [
                 CallbackQueryHandler(confirmar_cadastro, pattern="^cadastro_")
             ],
+            AGUARDANDO_NOME_ATENDENTE: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, tratar_nome_atendente)
+            ],
             AGUARDANDO_MENSAGEM: [
                 MessageHandler(filters.TEXT & ~filters.COMMAND, tratar_mensagem)
             ],
@@ -370,6 +487,7 @@ def get_conversation_handler() -> ConversationHandler:
         fallbacks=[
             CommandHandler("cancelar", cancelar),
             CommandHandler("start", start_command),
+            CommandHandler("pular", pular_nome_atendente),
         ],
     )
 

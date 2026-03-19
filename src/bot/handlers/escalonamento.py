@@ -131,6 +131,9 @@ async def tratar_callback_escalonamento(
     callback_data = query.data
     logger.info(f"📥 Callback de escalonamento: {callback_data}")
     
+    # Obter Telegram ID do atendente
+    telegram_id = update.effective_user.id
+    
     # Obter histórico da conversa
     historico = context.user_data.get("historico_conversa", "")
     
@@ -142,13 +145,13 @@ async def tratar_callback_escalonamento(
     try:
         if callback_data == "escalonar_ticket":
             resultado = await _executar_escalonamento(
-                servico, cliente, TipoEscalonamento.ABRIR_TICKET, historico
+                servico, cliente, TipoEscalonamento.ABRIR_TICKET, historico, telegram_id
             )
             await query.edit_message_text(resultado.mensagem)
         
         elif callback_data == "escalonar_humano":
             resultado = await _executar_escalonamento(
-                servico, cliente, TipoEscalonamento.ATENDIMENTO_HUMANO, historico
+                servico, cliente, TipoEscalonamento.ATENDIMENTO_HUMANO, historico, telegram_id
             )
             await query.edit_message_text(resultado.mensagem)
         
@@ -189,6 +192,7 @@ async def _executar_escalonamento(
     cliente,
     tipo: TipoEscalonamento,
     historico: str,
+    atendente_telegram_id: int = None,
 ) -> ResultadoEscalonamento:
     """
     Executa o escalonamento.
@@ -198,6 +202,7 @@ async def _executar_escalonamento(
         cliente: Cliente
         tipo: Tipo de escalonamento
         historico: Histórico da conversa
+        atendente_telegram_id: Telegram ID do atendente
         
     Returns:
         ResultadoEscalonamento
@@ -206,6 +211,7 @@ async def _executar_escalonamento(
         cliente=cliente,
         tipo=tipo,
         historico_conversa=historico,
+        atendente_telegram_id=atendente_telegram_id,
     )
 
 

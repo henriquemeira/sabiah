@@ -55,6 +55,7 @@ class ServicoContexto:
         mensagem: str,
         n_resultados_busca: int = 5,
         limite_historico: int = 10,
+        atendente_telegram_id: Optional[int] = None,
     ) -> ContextoAtendimento:
         """
         Prepara o contexto completo para um atendimento.
@@ -64,6 +65,7 @@ class ServicoContexto:
             mensagem: Mensagem do usuário
             n_resultados_busca: Número de resultados da busca na base de conhecimento
             limite_historico: Limite de mensagens do histórico
+            atendente_telegram_id: Se fornecido, retorna apenas histórico deste atendente
             
         Returns:
             ContextoAtendimento com todas as informações necessárias
@@ -77,10 +79,11 @@ class ServicoContexto:
         )
         base_conhecimento = self.memoria_geral.formatar_resultados(resultados_gerais)
         
-        # 2. Buscar na memória do cliente (histórico)
+        # 2. Buscar na memória do cliente (histórico) - filtrado por atendente se fornecido
         historico = self.memoria_cliente.buscar_historico_formatado(
             cliente,
-            limite=limite_historico
+            limite=limite_historico,
+            atendente_telegram_id=atendente_telegram_id
         )
         
         # 3. Construir contexto do cliente para o prompt
@@ -112,6 +115,7 @@ class ServicoContexto:
         mensagem_usuario: str,
         mensagem_bot: str,
         resolvido: bool = False,
+        atendente_telegram_id: Optional[int] = None,
     ) -> None:
         """
         Salva o atendimento no histórico do cliente.
@@ -121,12 +125,14 @@ class ServicoContexto:
             mensagem_usuario: Mensagem do usuário
             mensagem_bot: Resposta do bot
             resolvido: Se foi resolvido
+            atendente_telegram_id: Telegram ID do atendente (para isolamento)
         """
         self.memoria_cliente.adicionar_mensagem(
             cliente=cliente,
             mensagem_usuario=mensagem_usuario,
             mensagem_bot=mensagem_bot,
             resolvido=resolvido,
+            atendente_telegram_id=atendente_telegram_id,
         )
     
     def processar_mensagem(
@@ -134,6 +140,7 @@ class ServicoContexto:
         cliente: Cliente,
         mensagem: str,
         provedor_ia,
+        atendente_telegram_id: Optional[int] = None,
     ) -> tuple[str, ContextoAtendimento]:
         """
         Processa uma mensagem do cliente e retorna a resposta da IA.
@@ -142,12 +149,17 @@ class ServicoContexto:
             cliente: Cliente
             mensagem: Mensagem do usuário
             provedor_ia: Instância do provedor de IA
+            atendente_telegram_id: Telegram ID do atendente (para isolamento de histórico)
             
         Returns:
             Tuple (resposta_da_ia, contexto)
         """
         # Preparar contexto
-        contexto = self.preparar_atendimento(cliente, mensagem)
+        contexto = self.preparar_atendimento(
+            cliente, 
+            mensagem, 
+            atendente_telegram_id=atendente_telegram_id
+        )
         
         # Enviar para a IA
         resposta = provedor_ia.chat(
@@ -156,11 +168,12 @@ class ServicoContexto:
             historico=contexto.historico,
         )
         
-        # Salvar no histórico
+        # Salvar no histórico (com telegram_id do atendente para isolamento)
         self.salvar_atendimento(
             cliente=cliente,
             mensagem_usuario=mensagem,
             mensagem_bot=resposta.conteudo,
+            atendente_telegram_id=atendente_telegram_id,
         )
         
         return resposta.conteudo, contexto
