@@ -153,7 +153,7 @@ class ServicoEscalonamento:
             logger.warning("⚠️ Helpdesk não configurado, salvando ticket localmente")
             return self._criar_ticket_local(
                 cliente=cliente,
-                historico=historico_conversa,
+                historico_conversa=historico_conversa,
                 motivo=motivo,
                 telefone=telefone,
                 atendente_telegram_id=atendente_telegram_id,
@@ -216,7 +216,7 @@ class ServicoEscalonamento:
             logger.error(f"❌ Erro ao criar ticket: {e}")
             return self._criar_ticket_local(
                 cliente=cliente,
-                historico=historico_conversa,
+                historico_conversa=historico_conversa,
                 motivo=motivo,
                 telefone=telefone,
                 atendente_telegram_id=atendente_telegram_id,
