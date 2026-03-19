@@ -158,6 +158,27 @@ class IdentificacaoService:
     def _normalizar_cnpj(self, cnpj: str) -> str:
         """Normaliza o CNPJ removendo caracteres especiais."""
         return re.sub(r"[^\d]", "", cnpj)
+    
+    def obter_tipo_identificador(self, texto: str) -> str:
+        """
+        Retorna o tipo de identificador baseado no formato do texto.
+        
+        Args:
+            texto: Texto a ser analisado
+            
+        Returns:
+            Tipo do identificador: 'cnpj', 'email', 'codigo' ou 'desconhecido'
+        """
+        texto = texto.strip()
+        
+        if self._eh_cnpj(texto):
+            return "cnpj"
+        if self._eh_email(texto):
+            return "email"
+        if self._eh_codigo(texto):
+            return "codigo"
+        
+        return "desconhecido"
 
 
 def formatar_cnpj(cnpj: str) -> str:
