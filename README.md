@@ -171,11 +171,11 @@ Embora o foco inicial seja o Telegram, a arquitetura do Sabiah é modular e prep
 - [x] Relatório semanal com métricas consolidadas
 
 ### Fase 6 — Refinamento e Testes
-- [ ] Testes com cenários reais de suporte
-- [ ] Ajuste de prompts e qualidade das respostas
-- [ ] Tratamento de edge cases (mensagens vazias, spam, idiomas, etc.)
-- [ ] Documentação de uso para a equipe de suporte
-- [ ] Documentação de como atualizar a base de conhecimento
+- [x] Testes com cenários reais de suporte
+- [x] Ajuste de prompts e qualidade das respostas
+- [x] Tratamento de edge cases (mensagens vazias, spam, idiomas, etc.)
+- [x] Documentação de uso para a equipe de suporte
+- [x] Documentação de como atualizar a base de conhecimento
 
 ### Fase Futura
 - [ ] Canal WhatsApp
