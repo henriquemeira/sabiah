@@ -18,7 +18,8 @@ class Cliente(Base):
     __tablename__ = "clientes"
     
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    telegram_id: Mapped[int] = mapped_column(Integer, unique=True, nullable=True, index=True)
+    # Telegram ID não é mais unique=True - permite múltiplos vínculos por CNPJ e um Telegram para múltiplas empresas
+    telegram_id: Mapped[int] = mapped_column(Integer, nullable=True, index=True)
     cnpj: Mapped[str] = mapped_column(String(18), unique=True, nullable=True)
     codigo_cliente: Mapped[str] = mapped_column(String(50), unique=True, nullable=True)
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=True, index=True)
@@ -42,6 +43,27 @@ class Cliente(Base):
     tickets: Mapped[list["Ticket"]] = relationship(
         "Ticket", back_populates="cliente", cascade="all, delete-orphan"
     )
+    # Novos relacionamentos para múltiplos Telegrams por cliente
+    telegram_vinculos: Mapped[list["TelegramCliente"]] = relationship(
+        "TelegramCliente", back_populates="cliente", cascade="all, delete-orphan"
+    )
+
+
+class TelegramCliente(Base):
+    """Modelo de vínculo entre Telegram e Cliente (permite múltiplos vínculos)."""
+    
+    __tablename__ = "telegram_cliente"
+    
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    cliente_id: Mapped[int] = mapped_column(Integer, ForeignKey("clientes.id"), nullable=False, index=True)
+    telegram_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    nome_atendente: Mapped[str] = mapped_column(String(255), nullable=True)
+    
+    # Timestamps
+    criado_em: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    
+    # Relacionamentos
+    cliente: Mapped["Cliente"] = relationship("Cliente", back_populates="telegram_vinculos")
 
 
 class Conversa(Base):
@@ -52,6 +74,8 @@ class Conversa(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     cliente_id: Mapped[int] = mapped_column(Integer, ForeignKey("clientes.id"), nullable=True, index=True)
     telegram_id: Mapped[int] = mapped_column(Integer, nullable=True, index=True)
+    # Campo para isolar conversas por atendente - cada atendente vê apenas suas próprias conversas
+    atendente_telegram_id: Mapped[int] = mapped_column(Integer, nullable=True, index=True)
     
     # Mensagens
     mensagem_usuario: Mapped[str] = mapped_column(Text, nullable=False)
@@ -77,6 +101,8 @@ class Ticket(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     cliente_id: Mapped[int] = mapped_column(Integer, ForeignKey("clientes.id"), nullable=True, index=True)
     telegram_id: Mapped[int] = mapped_column(Integer, nullable=True, index=True)
+    # Campo para isolar tickets por atendente - cada atendente vê apenas seus próprios tickets
+    atendente_telegram_id: Mapped[int] = mapped_column(Integer, nullable=True, index=True)
     
     # Dados do ticket externo
     ticket_externo_id: Mapped[str] = mapped_column(String(100), nullable=True, unique=True)

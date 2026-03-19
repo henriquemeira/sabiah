@@ -34,6 +34,7 @@ class MemoriaCliente:
         mensagem_usuario: str,
         mensagem_bot: Optional[str] = None,
         resolvido: bool = False,
+        atendente_telegram_id: Optional[int] = None,
     ) -> Conversa:
         """
         Adiciona uma mensagem ao histórico do cliente.
@@ -43,6 +44,7 @@ class MemoriaCliente:
             mensagem_usuario: Mensagem enviada pelo usuário
             mensagem_bot: Resposta do bot (opcional)
             resolvido: Se a questão foi resolvida
+            atendente_telegram_id: Telegram ID do atendente (para isolamento)
             
         Returns:
             Conversa criada
@@ -54,6 +56,7 @@ class MemoriaCliente:
             mensagem_bot=mensagem_bot,
             fonte="telegram",
             resolvido=resolvido,
+            atendente_telegram_id=atendente_telegram_id,
         )
         
         self.db.add(conversa)
@@ -67,6 +70,7 @@ class MemoriaCliente:
         self,
         cliente: Cliente,
         limite: int = 10,
+        atendente_telegram_id: Optional[int] = None,
     ) -> list[Conversa]:
         """
         Busca o histórico de conversas do cliente.
@@ -74,13 +78,19 @@ class MemoriaCliente:
         Args:
             cliente: Cliente
             limite: Número máximo de mensagens a retornar
+            atendente_telegram_id: Se fornecido, retorna apenas conversas deste atendente
             
         Returns:
             Lista de conversas
         """
+        query = self.db.query(Conversa).filter(Conversa.cliente_id == cliente.id)
+        
+        # Se atendente_telegram_id fornecido, filtrar apenas conversas desse atendente
+        if atendente_telegram_id:
+            query = query.filter(Conversa.atendente_telegram_id == atendente_telegram_id)
+        
         return (
-            self.db.query(Conversa)
-            .filter(Conversa.cliente_id == cliente.id)
+            query
             .order_by(Conversa.created_at.desc())
             .limit(limite)
             .all()
@@ -90,6 +100,7 @@ class MemoriaCliente:
         self,
         cliente: Cliente,
         limite: int = 10,
+        atendente_telegram_id: Optional[int] = None,
     ) -> list[dict]:
         """
         Busca o histórico de conversas formatado para a IA.
@@ -97,11 +108,16 @@ class MemoriaCliente:
         Args:
             cliente: Cliente
             limite: Número máximo de mensagens
+            atendente_telegram_id: Se fornecido, retorna apenas conversas deste atendente
             
         Returns:
             Lista de mensagens no formato [{"role": "user/assistant", "content": "..."}]
         """
-        conversas = self.buscar_historico(cliente, limite)
+        conversas = self.buscar_historico(
+            cliente, 
+            limite, 
+            atendente_telegram_id=atendente_telegram_id
+        )
         
         historico = []
         # Converter para formato da IA (mais antigas primeiro)

@@ -91,9 +91,10 @@ class ServicoEscalonamento:
         historico_conversa: str,
         motivo: Optional[MotivoEscalonamento] = None,
         telefone: Optional[str] = None,
+        atendente_telegram_id: Optional[int] = None,
     ) -> ResultadoEscalonamento:
         """
-        Executa o escalonamento según o tipo especificado.
+        Executa o escalonamiento según o tipo especificado.
         
         Args:
             cliente: Cliente
@@ -101,6 +102,7 @@ class ServicoEscalonamento:
             historico_conversa: Histórico da conversa
             motivo: Motivo do escalonamento
             telefone: Telefone para callback (se aplicável)
+            atendente_telegram_id: Telegram ID do atendente (para isolamento de tickets)
             
         Returns:
             ResultadoEscalonamento
@@ -108,13 +110,19 @@ class ServicoEscalonamento:
         logger.info(f"🔄 Executando escalonamento: {tipo} para cliente {cliente.id}")
         
         if tipo == TipoEscalonamento.ABRIR_TICKET:
-            return self._abrir_ticket(cliente, historico_conversa, motivo, telefone)
+            return self._abrir_ticket(
+                cliente, historico_conversa, motivo, telefone, atendente_telegram_id
+            )
         
         elif tipo == TipoEscalonamento.ATENDIMENTO_HUMANO:
-            return self._solicitar_atendimento_humano(cliente, historico_conversa, motivo)
+            return self._solicitar_atendimento_humano(
+                cliente, historico_conversa, motivo, atendente_telegram_id
+            )
         
         elif tipo == TipoEscalonamento.CALLBACK:
-            return self._solicitar_callback(cliente, historico_conversa, telefone)
+            return self._solicitar_callback(
+                cliente, historico_conversa, telefone, atendente_telegram_id
+            )
         
         elif tipo == TipoEscalonamento.REFORMULAR:
             return ResultadoEscalonamento(
@@ -136,6 +144,7 @@ class ServicoEscalonamento:
         historico_conversa: str,
         motivo: Optional[MotivoEscalonamento],
         telefone: Optional[str] = None,
+        atendente_telegram_id: Optional[int] = None,
     ) -> ResultadoEscalonamento:
         """Abre um ticket no helpdesk."""
         
@@ -147,6 +156,7 @@ class ServicoEscalonamento:
                 historico=historico_conversa,
                 motivo=motivo,
                 telefone=telefone,
+                atendente_telegram_id=atendente_telegram_id,
             )
         
         # Determinar prioridade
@@ -182,6 +192,7 @@ class ServicoEscalonamento:
                 assunto=request.assunto,
                 descricao=request.descricao,
                 prioridade=prioridade.value,
+                atendente_telegram_id=atendente_telegram_id,
             )
             
             # Notificar equipe
@@ -208,6 +219,7 @@ class ServicoEscalonamento:
                 historico=historico_conversa,
                 motivo=motivo,
                 telefone=telefone,
+                atendente_telegram_id=atendente_telegram_id,
                 erro=str(e),
             )
     
@@ -217,6 +229,7 @@ class ServicoEscalonamento:
         historico_conversa: str,
         motivo: Optional[MotivoEscalonamento],
         telefone: Optional[str] = None,
+        atendente_telegram_id: Optional[int] = None,
         erro: Optional[str] = None,
     ) -> ResultadoEscalonamento:
         """Cria um ticket local quando o helpdesk não está disponível."""
@@ -229,6 +242,7 @@ class ServicoEscalonamento:
         ticket = Ticket(
             cliente_id=cliente.id,
             telegram_id=cliente.telegram_id,
+            atendente_telegram_id=atendente_telegram_id,
             ticket_externo_id=None,
             canal="telegram",
             assunto=f"Suporte via Telegram - {cliente.nome}",
@@ -275,11 +289,13 @@ class ServicoEscalonamento:
         assunto: str,
         descricao: str,
         prioridade: str,
+        atendente_telegram_id: Optional[int] = None,
     ) -> None:
         """Salva referência do ticket no banco local."""
         ticket = Ticket(
             cliente_id=cliente.id,
             telegram_id=cliente.telegram_id,
+            atendente_telegram_id=atendente_telegram_id,
             ticket_externo_id=ticket_externo_id,
             canal=canal,
             assunto=assunto,
@@ -339,6 +355,7 @@ class ServicoEscalonamento:
         cliente: Cliente,
         historico_conversa: str,
         telefone: Optional[str] = None,
+        atendente_telegram_id: Optional[int] = None,
     ) -> ResultadoEscalonamento:
         """Solicita callback telefônico."""
         
@@ -355,6 +372,7 @@ class ServicoEscalonamento:
         ticket = Ticket(
             cliente_id=cliente.id,
             telegram_id=cliente.telegram_id,
+            atendente_telegram_id=atendente_telegram_id,
             ticket_externo_id=None,
             canal="telegram",
             assunto=f"CALLBACK - {cliente.nome} - {telefone_cliente}",
@@ -453,11 +471,20 @@ class ServicoEscalonamento:
         if erro:
             logger.error(f"⚠️ Erro ao criar ticket externo: {erro}")
     
-    def listar_tickets_cliente(self, cliente: Cliente) -> list[Ticket]:
-        """Lista tickets de um cliente."""
+    def listar_tickets_cliente(
+        self, 
+        cliente: Cliente, 
+        atendente_telegram_id: Optional[int] = None
+    ) -> list[Ticket]:
+        """Lista tickets de um cliente, opcionalmente filtrado por atendente."""
+        query = self.db.query(Ticket).filter(Ticket.cliente_id == cliente.id)
+        
+        # Se fornecido, filtrar apenas tickets deste atendente
+        if atendente_telegram_id:
+            query = query.filter(Ticket.atendente_telegram_id == atendente_telegram_id)
+        
         return (
-            self.db.query(Ticket)
-            .filter(Ticket.cliente_id == cliente.id)
+            query
             .order_by(Ticket.created_at.desc())
             .limit(10)
             .all()

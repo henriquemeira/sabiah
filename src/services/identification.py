@@ -1,11 +1,11 @@
 """Serviço de identificação e vinculação de clientes."""
 
 import re
-from typing import Optional
+from typing import Optional, List
 
 from sqlalchemy.orm import Session
 
-from src.models import Cliente
+from src.models import Cliente, TelegramCliente
 
 
 class ClienteNaoEncontrado(Exception):
@@ -82,31 +82,134 @@ class IdentificacaoService:
         return self.db.query(Cliente).filter(Cliente.codigo_cliente == codigo).first()
     
     def buscar_por_telegram_id(self, telegram_id: int) -> Optional[Cliente]:
-        """Busca cliente por Telegram ID."""
+        """
+        Busca cliente por Telegram ID.
+        
+        Primeiro verifica na tabela de vínculos TelegramCliente (múltiplos),
+        depois verifica no campo telegram_id do Cliente (legado).
+        
+        Args:
+            telegram_id: ID do Telegram do usuário
+            
+        Returns:
+            Cliente encontrado ou None
+        """
+        # Primeiro, buscar na tabela de vínculos múltiplos
+        vinculo = self.db.query(TelegramCliente).filter(
+            TelegramCliente.telegram_id == telegram_id
+        ).first()
+        
+        if vinculo:
+            return vinculo.cliente
+        
+        # Fallback: buscar no campo direto do cliente (legado)
         return self.db.query(Cliente).filter(Cliente.telegram_id == telegram_id).first()
     
-    def vincular_telegram(self, cliente: Cliente, telegram_id: int) -> Cliente:
+    def buscar_vinculos_por_telegram_id(self, telegram_id: int) -> List[TelegramCliente]:
+        """
+        Busca todos os vínculos de um Telegram ID (para múltiplas empresas).
+        
+        Args:
+            telegram_id: ID do Telegram do usuário
+            
+        Returns:
+            Lista de vínculos encontrados
+        """
+        return self.db.query(TelegramCliente).filter(
+            TelegramCliente.telegram_id == telegram_id
+        ).all()
+    
+    def listar_telegram_vinculados(self, cliente_id: int) -> List[TelegramCliente]:
+        """
+        Lista todos os Telegrams vinculados a um cliente.
+        
+        Args:
+            cliente_id: ID do cliente
+            
+        Returns:
+            Lista de vínculos
+        """
+        return self.db.query(TelegramCliente).filter(
+            TelegramCliente.cliente_id == cliente_id
+        ).all()
+    
+    def vincular_telegram(
+        self, 
+        cliente: Cliente, 
+        telegram_id: int, 
+        nome_atendente: Optional[str] = None
+    ) -> TelegramCliente:
         """
         Vincula um Telegram ID a um cliente existente.
+        
+        Agora permite múltiplos vínculos - um Telegram pode estar vinculado
+        a múltiplos clientes e um cliente pode ter múltiplos Telegrams.
         
         Args:
             cliente: Cliente a ser vinculado
             telegram_id: ID do Telegram do usuário
+            nome_atendente: Nome do atendente (opcional)
             
         Returns:
-            Cliente atualizado
+            Vinculo criado
         """
-        # Verificar se o Telegram ID já está vinculado a outro cliente
-        cliente_existente = self.buscar_por_telegram_id(telegram_id)
-        if cliente_existente and cliente_existente.id != cliente.id:
-            raise ValueError(
-                f"Telegram ID {telegram_id} já está vinculado a outro cliente"
-            )
+        # Verificar se já existe vínculo entre este cliente e este telegram_id
+        vinculo_existente = self.db.query(TelegramCliente).filter(
+            TelegramCliente.cliente_id == cliente.id,
+            TelegramCliente.telegram_id == telegram_id
+        ).first()
         
-        cliente.telegram_id = telegram_id
+        if vinculo_existente:
+            # Já vinculado, retorna o vínculo existente
+            return vinculo_existente
+        
+        # Criar novo vínculo na tabela intermediária
+        vinculo = TelegramCliente(
+            cliente_id=cliente.id,
+            telegram_id=telegram_id,
+            nome_atendente=nome_atendente
+        )
+        self.db.add(vinculo)
+        
+        # Também mantém o campo legadowebsite (para compatibilidade)
+        if cliente.telegram_id is None:
+            cliente.telegram_id = telegram_id
+        
         self.db.commit()
-        self.db.refresh(cliente)
-        return cliente
+        self.db.refresh(vinculo)
+        return vinculo
+    
+    def desvincular_telegram(self, cliente: Cliente, telegram_id: int) -> bool:
+        """
+        Desvincula um Telegram ID de um cliente.
+        
+        Args:
+            cliente: Cliente que terá o vínculo removido
+            telegram_id: ID do Telegram do usuário
+            
+        Returns:
+            True se desvinculado com sucesso, False se não existia vínculo
+        """
+        vinculo = self.db.query(TelegramCliente).filter(
+            TelegramCliente.cliente_id == cliente.id,
+            TelegramCliente.telegram_id == telegram_id
+        ).first()
+        
+        if not vinculo:
+            return False
+        
+        self.db.delete(vinculo)
+        
+        # Se não houver mais vínculos, limpar o campo legado
+        vinculos_restantes = self.db.query(TelegramCliente).filter(
+            TelegramCliente.telegram_id == telegram_id
+        ).count()
+        
+        if vinculos_restantes == 0:
+            cliente.telegram_id = None
+        
+        self.db.commit()
+        return True
     
     def criar_cliente(
         self,
