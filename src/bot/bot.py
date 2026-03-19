@@ -12,14 +12,12 @@ from telegram.ext import (
 from src.config import get_settings
 from src.config.logging import setup_logging
 from src.bot.handlers.mensagens import get_conversation_handler, get_callback_handler
-
-# Setup logging
-logger = setup_logging()
-settings = get_settings()
+from src.models.database import init_db
 
 
 async def post_init(application: Application) -> None:
     """Called after initialization, before the application starts."""
+    logger = logging.getLogger("sabiah")
     bot = application.bot
     me = await bot.get_me()
     logger.info(f"🤖 Bot iniciado: @{me.username} (ID: {me.id})")
@@ -27,11 +25,19 @@ async def post_init(application: Application) -> None:
 
 def main() -> None:
     """Função principal para iniciar o bot."""
+    logger = setup_logging()
+    settings = get_settings()
+    
+    # Sempre inicializar banco de dados primeiro
+    logger.info("💾 Inicializando banco de dados...")
+    init_db()
+    logger.info("✅ Banco de dados inicializado!")
+    
     if not settings.telegram_bot_token:
         logger.error("❌ TELEGRAM_BOT_TOKEN não configurado!")
         logger.error("Crie um bot via @BotFather e configure o token no arquivo .env")
         return
-
+    
     logger.info("🚀 Iniciando Sabiah...")
 
     # Criar aplicação
