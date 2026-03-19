@@ -33,6 +33,91 @@ logger = logging.getLogger(__name__)
 
 # Estados da conversa
 AGUARDANDO_IDENTIFICACAO = 1
+
+
+async def verificar_cliente_vinculado(telegram_id: int) -> tuple[Optional["Cliente"], list]:
+    """
+    Verifica se o Telegram ID está vinculado a um cliente.
+    
+    Args:
+        telegram_id: ID do Telegram do usuário
+        
+    Returns:
+        Tuple (cliente, lista de vínculos) - cliente pode ser None se não vinculado
+    """
+    db = next(get_db())
+    identificador = IdentificacaoService(db)
+    
+    try:
+        # Buscar vínculos do Telegram ID
+        vinculos = identificador.buscar_vinculos_por_telegram_id(telegram_id)
+        
+        if vinculos:
+            # Retornar primeiro vínculo (ou todos se precisar escolher)
+            return vinculos[0].cliente, vinculos
+        
+        # Fallback: verificar campo direto (legado)
+        cliente = identificador.buscar_por_telegram_id(telegram_id)
+        return cliente, []
+        
+    finally:
+        db.close()
+
+
+async def tratar_mensagem_automatica(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """
+    Handler para processar qualquer mensagem automaticamente.
+    Verifica se o Telegram ID já está vinculado a um cliente.
+    """
+    telegram_id = update.effective_user.id
+    mensagem = update.message.text
+    
+    # Ignorar comandos
+    if mensagem.startswith('/'):
+        return  # Deixa o ConversationHandler 处理 comandos
+    
+    logger.info(f"📥 Mensagem automática de {telegram_id}: {mensagem[:50]}...")
+    
+    # Verificar se já está em uma conversa ativa
+    cliente_existente = context.user_data.get("cliente")
+    if cliente_existente:
+        # Já tem cliente no contexto, processar normalmente
+        return await tratar_mensagem(update, context)
+    
+    # Verificar se Telegram ID está vinculado
+    cliente, vinculos = await verificar_cliente_vinculado(telegram_id)
+    
+    if cliente:
+        logger.info(f"✅ Cliente encontrado: {cliente.nome} (ID: {cliente.id})")
+        
+        # Restaurar contexto do cliente
+        context.user_data["cliente"] = cliente
+        context.user_data["historico_conversa"] = ""
+        context.user_data["tentativas"] = 0
+        
+        # Saudação personalizada
+        await update.message.reply_text(
+            f"🐦 Olá, {cliente.nome}! Que bom ter você de volta!\n\n"
+            "Em que posso ajudar hoje?"
+        )
+        
+        # Processar a mensagem normalmente
+        return await tratar_mensagem(update, context)
+    
+    else:
+        # Cliente não vinculado - iniciar fluxo de identificação
+        logger.info(f"❌ Telegram {telegram_id} não vinculado a nenhum cliente")
+        
+        await update.message.reply_text(
+            "🐦 Olá! Sou o Sabiah, seu assistente de suporte.\n\n"
+            "Para começar, preciso identificar sua conta. "
+            "Por favor, informe seu CNPJ, código de cliente ou e-mail."
+        )
+        
+        return AGUARDANDO_IDENTIFICACAO
+
+
+# Estados da conversa (continuação)
 AGUARDANDO_CADASTRO_NOME = 2  # Novo estado: coletar nome
 AGUARDANDO_CADASTRO_EMAIL = 3  # Novo estado: coletar e-mail
 AGUARDANDO_CADASTRO_TELEFONE = 4  # Novo estado: coletar telefone
@@ -479,7 +564,11 @@ async def pular_nome_atendente(update: Update, context: ContextTypes.DEFAULT_TYP
 def get_conversation_handler() -> ConversationHandler:
     """Retorna o ConversationHandler principal."""
     return ConversationHandler(
-        entry_points=[CommandHandler("start", start_command)],
+        entry_points=[
+            CommandHandler("start", start_command),
+            # Handler para processar qualquer mensagem automaticamente
+            MessageHandler(filters.TEXT & ~filters.COMMAND, tratar_mensagem_automatica),
+        ],
         states={
             AGUARDANDO_IDENTIFICACAO: [
                 MessageHandler(filters.TEXT & ~filters.COMMAND, tratar_identificacao)
