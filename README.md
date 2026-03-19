@@ -57,6 +57,8 @@ TELEGRAM_BOT_TOKEN=seu_token_aqui
 # IA - Escolha uma opção:
 # Opção 1: Groq (recomendado - gratuito e rápido)
 GROQ_API_KEY=sua_chave_groq_aqui
+# Modelo (opcional): llama-3.1-70b-versatile, llama-3.1-8b-instant, mixtral-8x7b-32768, gemma2-9b-it
+GROQ_MODEL=llama-3.1-70b-versatile
 
 # Opção 2: Google Gemini
 GEMINI_API_KEY=sua_chave_gemini_aqui
