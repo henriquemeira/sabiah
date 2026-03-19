@@ -15,13 +15,17 @@ settings = get_settings()
 class GroqProvedor(ProvedorIA):
     """Provedor de IA usando Groq (API gratuita com GPUs NVIDIA)."""
     
-    def __init__(self, modelo: str = "llama-3.1-70b-versatile"):
+    def __init__(self, modelo: str = None):
         """
         Inicializa o provedor Groq.
         
         Args:
-            modelo: Modelo do Groq a ser usado
+            modelo: Modelo do Groq a ser usado (padrão: usa GROQ_MODEL das config)
         """
+        # Usar configuração das settings se não informado
+        if modelo is None:
+            modelo = settings.groq_model
+        
         self._modelo = modelo
         self._client = None
         

@@ -24,6 +24,7 @@ class Settings(BaseSettings):
 
     # Groq (alternativa gratuita ao Gemini)
     groq_api_key: str = Field(default="", alias="GROQ_API_KEY")
+    groq_model: str = Field(default="llama-3.1-70b-versatile", alias="GROQ_MODEL")
 
     # Banco de Dados
     database_path: str = Field(default="data/sabiah.db", alias="DATABASE_PATH")
