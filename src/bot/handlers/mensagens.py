@@ -154,8 +154,8 @@ async def tratar_mensagem(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             provedor_ia=provedor,
         )
         
-        # Enviar resposta
-        await update.message.reply_text(resposta)
+        # Enviar resposta (sem Markdown - Telegram interpreta * como Markdown por padrão)
+        await update.message.reply_text(resposta, parse_mode=None)
         
         # Atualizar histórico no contexto
         context.user_data["historico_conversa"] = contexto.historico
