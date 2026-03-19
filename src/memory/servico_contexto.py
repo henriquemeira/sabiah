@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from src.models import Cliente
 from src.ai.prompts import PromptBuilder
-from src.memory.memoria_geral import MemoriaGeral
+from src.memory.memoria_geral import MemoriaGeral, get_memoria_geral
 from src.memory.memoria_cliente import MemoriaCliente
 from src.memory.memoria_dominio import MemoriaDominio
 
@@ -44,7 +44,8 @@ class ServicoContexto:
             db: Sessão do banco de dados
         """
         self.db = db
-        self.memoria_geral = MemoriaGeral()
+        # Usar instância global da memória geral (já indexada)
+        self.memoria_geral = get_memoria_geral()
         self.memoria_cliente = MemoriaCliente(db)
         self.memoria_dominio = MemoriaDominio(db)
     

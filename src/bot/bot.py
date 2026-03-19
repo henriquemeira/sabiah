@@ -13,6 +13,7 @@ from src.config import get_settings
 from src.config.logging import setup_logging
 from src.bot.handlers.mensagens import get_conversation_handler, get_callback_handler
 from src.models.database import init_db
+from src.memory.memoria_geral import get_memoria_geral
 
 
 async def post_init(application: Application) -> None:
@@ -21,6 +22,12 @@ async def post_init(application: Application) -> None:
     bot = application.bot
     me = await bot.get_me()
     logger.info(f"🤖 Bot iniciado: @{me.username} (ID: {me.id})")
+    
+    # Inicializar base de conhecimento
+    logger.info("📚 Carregando base de conhecimento...")
+    memoria_geral = get_memoria_geral()
+    total_docs = memoria_geral.indexar()
+    logger.info(f"✅ Base de conhecimento carregada: {total_docs} documentos")
 
 
 def main() -> None:

@@ -20,6 +20,8 @@ from src.models import Cliente
 from src.services import IdentificacaoService, ClienteNaoEncontrado
 from src.services.escalonamento import ServicoEscalonamento
 from src.services.deteccao_escalonamento import TipoEscalonamento
+from src.ai.factory import get_provedor
+from src.memory.servico_contexto import ServicoContexto
 from src.bot.handlers.escalonamento import (
     criar_menu_escalonamento,
     mostrar_opcoes_escalonamento,
@@ -114,7 +116,7 @@ async def tratar_identificacao(update: Update, context: ContextTypes.DEFAULT_TYP
 
 
 async def tratar_mensagem(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """Processa mensagens do cliente identificado."""
+    """Processa mensagens do cliente identificado usando IA."""
     mensagem = update.message.text
     cliente: Cliente = context.user_data.get("cliente")
     
@@ -124,24 +126,50 @@ async def tratar_mensagem(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         )
         return AGUARDANDO_IDENTIFICACAO
     
-    # Atualizar histórico
-    historico = context.user_data.get("historico_conversa", "")
-    historico += f"Cliente: {mensagem}\n"
+    # Verificar se é uma mensagem de cancelamento
+    if mensagem.lower() in ["cancelar", "/cancelar"]:
+        await update.message.reply_text(
+            "✅ Atendimento encerrado. Envie /start para iniciar novamente."
+        )
+        context.user_data.clear()
+        return ConversationHandler.END
     
-    # TODO: Aqui entraria a lógica de IA
-    # Por enquanto, apenas echo com menu de escalonamento simulado
-    await update.message.reply_text(
-        f"📝 Você disse: {mensagem}\n\n"
-        "Em uma implementação completa, isso seria processado pela IA."
-    )
+    # Mostrar indicador de "digitando" para o usuário
+    await update.message.chat.send_action("typing")
     
-    # Simular detecção de necessidade de escalonamento
-    # (Aqui você integraria com o DetectorEscalonamento)
-    
-    # Atualizar histórico
-    context.user_data["historico_conversa"] = historico
-    
-    return AGUARDANDO_MENSAGEM
+    try:
+        # Obter provedor de IA
+        provedor = get_provedor()
+        
+        # Obter sessão do banco
+        db = next(get_db())
+        
+        # Criar serviço de contexto
+        servico_contexto = ServicoContexto(db)
+        
+        # Processar mensagem com IA
+        resposta, contexto = servico_contexto.processar_mensagem(
+            cliente=cliente,
+            mensagem=mensagem,
+            provedor_ia=provedor,
+        )
+        
+        # Enviar resposta
+        await update.message.reply_text(resposta)
+        
+        # Atualizar histórico no contexto
+        context.user_data["historico_conversa"] = contexto.historico
+        
+        db.close()
+        return AGUARDANDO_MENSAGEM
+        
+    except Exception as e:
+        logger.error(f"Erro ao processar mensagem com IA: {e}")
+        await update.message.reply_text(
+            "⚠️ Desculpe, estou tendo dificuldades para processar sua solicitação. "
+            "Por favor, tente novamente em alguns momentos."
+        )
+        return AGUARDANDO_MENSAGEM
 
 
 async def tratar_cadastro_nome(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
