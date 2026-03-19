@@ -22,6 +22,9 @@ class Settings(BaseSettings):
     # Google Gemini
     gemini_api_key: str = Field(default="", alias="GEMINI_API_KEY")
 
+    # Groq (alternativa gratuita ao Gemini)
+    groq_api_key: str = Field(default="", alias="GROQ_API_KEY")
+
     # Banco de Dados
     database_path: str = Field(default="data/sabiah.db", alias="DATABASE_PATH")
 
