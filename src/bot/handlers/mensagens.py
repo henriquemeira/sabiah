@@ -93,7 +93,7 @@ async def tratar_identificacao(update: Update, context: ContextTypes.DEFAULT_TYP
                     "telegram_id": telegram_id
                 }
                 db.close()
-                return AGUARDANDO_CADASTRO_TELEFONE + 1  # Novo estado para nome do atendente
+                return AGUARDANDO_NOME_ATENDENTE
             
             # Salvar cliente no contexto
             context.user_data["cliente"] = cliente
