@@ -72,23 +72,35 @@ Cliente inicia conversa no Telegram
   (CNPJ, código ou e-mail)
         │
         ▼
-  Vinculação ao cadastro
-  (Memória do cliente + domínio)
+  ┌─────────────────────────────────────┐
+  │ Cliente encontrado no banco de dados │──▶ Vinculação ao cadastro
+  │         (Memória do cliente + domínio)          │
+  └─────────────────────────────────────┘
         │
         ▼
-  IA tenta resolver a questão
-  (Busca semântica + contexto)
-        │
-        ├── ✅ Resolvido ──▶ Pesquisa de satisfação
-        │
-        └── ❌ Não resolvido
-                │
-                ▼
-        Opções de escalonamento:
-        ├── 🔄 Reformular pergunta
-        ├── 🎫 Abrir ticket no Helpdesk (automático, via canal configurado)
-        ├── 👤 Atendimento humano (notifica equipe)
-        └── 📞 Solicitar callback (coleta telefone)
+  ┌─────────────────────────────────────┐
+  │ Cliente NÃO encontrado              │──▶ Fluxo de Auto-cadastro
+  │ (primeiro contato)                  │    │
+  └─────────────────────────────────────┘    │
+        │                                   │
+        ▼                                   ▼
+  IA tenta resolver a questão    1. Solicitar nome completo
+  (Busca semântica + contexto)   2. Solicitar e-mail
+                                   3. Solicitar telefone
+                                   4. Confirmar dados
+                                   5. Criar cliente + vincular Telegram
+        │                                   │
+        ▼                                   ▼
+  ├── ✅ Resolvido ──▶ Pesquisa de satisfação
+  │
+  └── ❌ Não resolvido
+          │
+          ▼
+  Opções de escalonamento:
+  ├── 🔄 Reformular pergunta
+  ├── 🎫 Abrir ticket no Helpdesk (automático, via canal configurado)
+  ├── 👤 Atendimento humano (notifica equipe)
+  └── 📞 Solicitar callback (coleta telefone)
 ```
 
 ---
@@ -99,6 +111,7 @@ Cliente inicia conversa no Telegram
 
 - Atendimento autônomo por IA com busca semântica na base de conhecimento
 - Identificação e vinculação automática do cliente pelo Telegram
+- **Auto-cadastro**: clientes não encontrados podem se cadastrar diretamente pelo bot (coleta nome, e-mail e telefone com confirmação)
 - Respostas contextualizadas com base no domínio do cliente (versão, plano, módulos)
 - Histórico de conversas preservado para continuidade do atendimento
 - Consulta de status de tickets do Helpdesk (via canal configurado) diretamente pelo bot
